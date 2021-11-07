@@ -15,8 +15,8 @@ const task_table = $('#task_table');
 function task_query() {
     console.log('button click');
 
-    var start_date = setting_date_start.val();
-    var end_date = setting_date_end.val();
+    var from_date = setting_date_start.val();
+    var to_date = setting_date_end.val();
 
     var checked_list = []
 
@@ -28,8 +28,8 @@ function task_query() {
 
     console.log(checked_list)
     data = {
-        "start_date": start_date,
-        "end_date": end_date,
+        "from_date": from_date,
+        "to_date": to_date,
         "filters": checked_list
     }
 

@@ -42,7 +42,7 @@ def get_outlook_inbox_folders():
     return folders
 
 
-def get_task_from_outlook(folder_path):
+def get_task_from_outlook(folder_path, from_date=None, to_date=None):
     outlook = get_outlook()
     accounts = get_accounts()
     result = []
@@ -51,7 +51,7 @@ def get_task_from_outlook(folder_path):
         inbox = outlook.Folders(display_name)
         mail_box = MailFolder(folder_path, inbox)
         try:
-            for mail in mail_box.list_mail():
+            for mail in mail_box.list_mail(from_date=from_date, to_date=to_date):
                 task = Task()
                 task.sender_name = mail.sender_address
                 task.subject = mail.subject
@@ -62,10 +62,10 @@ def get_task_from_outlook(folder_path):
     return result
 
 
-def get_task_dataframe(all_folder_path):
+def get_task_dataframe(all_folder_path, from_date=None, to_date=None):
     all_tasks_data = []
     for folder_path in all_folder_path:
-        tasks_data = get_task_from_outlook(folder_path)
+        tasks_data = get_task_from_outlook(folder_path, from_date=from_date, to_date=to_date)
         all_tasks_data.extend(tasks_data)
 
     task_dataframe = TaskDataFrame()

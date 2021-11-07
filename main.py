@@ -5,6 +5,8 @@ import threading
 import uuid
 from typing import List
 
+from dateutil.parser import parse
+from dateutil.tz import tzlocal
 from fastapi import FastAPI
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import FileResponse
@@ -21,8 +23,8 @@ app.mount('/static', StaticFiles(directory='static'), name='static')
 
 
 class TaskQuery(BaseModel):
-    start_date: str = None
-    end_date: str = None
+    from_date: str = None
+    to_date: str = None
     filters: List[str] = []
 
 
@@ -57,7 +59,9 @@ async def chart(request: Request):
 @app.post("/task_query/")
 async def create_task_query(task_query: TaskQuery):
     tmp_id = uuid.uuid4().hex
-    task_query_record[tmp_id] = get_task_dataframe(task_query.filters)
+    from_date = parse(task_query.from_date).replace(tzinfo=tzlocal())
+    to_date = parse(task_query.to_date).replace(tzinfo=tzlocal())
+    task_query_record[tmp_id] = get_task_dataframe(task_query.filters, from_date=from_date, to_date=to_date)
     return tmp_id
 
 
