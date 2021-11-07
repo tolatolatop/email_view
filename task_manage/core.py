@@ -33,6 +33,7 @@ def get_outlook_inbox_folders():
     folders = []
     for account in accounts:
         display_name = account.DeliveryStore.DisplayName
+        folders.append({'name': '/收件箱', 'owner': display_name})
         inbox = outlook.Folders(display_name)
         root_mail_box = MailFolder('/收件箱', inbox)
         for mail_folders, mails in root_mail_box.walk():
