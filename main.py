@@ -7,7 +7,7 @@ from typing import List
 
 from dateutil.parser import parse
 from dateutil.tz import tzlocal
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -50,10 +50,14 @@ async def main(request: Request):
                                                      'table_headers': task_dataframe_headers})
 
 
-@app.get("/chart")
-async def chart(request: Request):
-    task_chart = get_task_chart()
-    return templates.TemplateResponse('chart.html', {'request': request, 'task_chart': task_chart})
+@app.get("/chart/{task_id}")
+async def chart(request: Request, task_id: str):
+    if task_id in task_query_record.keys():
+        task_dataframe = task_query_record[task_id]
+        task_chart = get_task_chart(task_dataframe)
+        return templates.TemplateResponse('chart.html', {'request': request, 'task_chart': task_chart})
+    else:
+        raise HTTPException(status_code=404, detail="chart not found")
 
 
 @app.post("/task_query/")

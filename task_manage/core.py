@@ -4,6 +4,7 @@ from typing import List
 
 from py_mapi.core import get_outlook, get_accounts, MailFolder
 
+# 此处使用uuid缓存 会概率性引发BUG
 task_query_record = {}
 
 
@@ -17,6 +18,30 @@ class TaskDataFrame(BaseModel):
     column_names: List[str] = ['发送者', '标题', '发送时间']
     column_ids: List[str] = ['sender_name', 'subject', 'received_time']
     data: List[Task] = []
+
+    def write_to_excel(self):
+        print(self.data)
+
+
+class TasksChart(BaseModel):
+    labels: List[str] = []
+    data: List[int] = []
+    backgroundColor: List[str] = []
+    borderColor: List[str] = []
+
+    @staticmethod
+    def background_color(index):
+        if index % 2 == 0:
+            return 'rgba(255, 99, 132, 0.2)'
+        else:
+            return 'rgba(54, 162, 235, 0.2)'
+
+    @staticmethod
+    def border_color(index):
+        if index % 2 == 0:
+            return 'rgba(255, 99, 132, 1)'
+        else:
+            return 'rgba(54, 162, 235, 1)'
 
 
 def html_to_csv():
@@ -73,25 +98,17 @@ def get_task_dataframe(all_folder_path, from_date=None, to_date=None):
     return task_dataframe
 
 
-def get_task_chart():
-    task_chart = {
-        'labels': ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
-        'data': [12, 19, 3, 5, 2, 3],
-        'backgroundColor': [
-            'rgba(255, 99, 132, 0.2)',
-            'rgba(54, 162, 235, 0.2)',
-            'rgba(255, 206, 86, 0.2)',
-            'rgba(75, 192, 192, 0.2)',
-            'rgba(153, 102, 255, 0.2)',
-            'rgba(255, 159, 64, 0.2)'
-        ],
-        'borderColor': [
-            'rgba(255, 99, 132, 1)',
-            'rgba(54, 162, 235, 1)',
-            'rgba(255, 206, 86, 1)',
-            'rgba(75, 192, 192, 1)',
-            'rgba(153, 102, 255, 1)',
-            'rgba(255, 159, 64, 1)'
-        ]
-    }
+def get_task_chart(task_dataframe: TaskDataFrame):
+    task_chart = TasksChart()
+    chart_data = {}
+    for data in task_dataframe.data:
+        if data.sender_name in chart_data.keys():
+            chart_data[data.sender_name] += 1
+        else:
+            chart_data[data.sender_name] = 1
+
+    task_chart.labels = list(chart_data.keys())
+    task_chart.data = [chart_data[label] for label in task_chart.labels]
+    task_chart.borderColor = [task_chart.border_color(i) for i in range(len(task_chart.labels))]
+    task_chart.backgroundColor = [task_chart.background_color(i) for i in range(len(task_chart.labels))]
     return task_chart

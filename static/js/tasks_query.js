@@ -12,6 +12,8 @@ setting_date_end.datepicker('update', new Date());
 
 const task_table = $('#task_table');
 
+const to_chart_button = $('#to_chart_button');
+
 function task_query() {
     console.log('button click');
 
@@ -47,6 +49,7 @@ function task_query() {
             silent: true
         }
         task_table.bootstrapTable('refresh', refresh_query);
+        to_chart_button.attr('href', './chart/' + response);
 
     }
     ).fail(() => {
