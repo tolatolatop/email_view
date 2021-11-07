@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Index{% endblock %}
+{% block head %}
+{{ super() }}
+<style type="text/css">
+        .important { color: #336699; }
+
+</style>
+{% endblock %}
+{% block content %}
+<div class="container">
+
+    <div class="row">
+        <div class="col-md-12">
+            <h2>图表</h2>
+            <canvas id="myChart" width="1000" height="400"></canvas>
+        </div>
+    </div>
+    <hr>
+    <footer>
+        <p>&copy; 2016 Company, Inc.</p>
+    </footer>
+</div> <!-- /container -->
+
+{% endblock %}
+
+{% block footer %}
+<script src="{{ url_for('static', path='/js/bootstrap-datepicker.js') }}"></script>
+<script src="{{ url_for('static', path='/js/chart.min.js') }}"></script>
+
+<script type="text/javascript">
+const ctx = document.getElementById('myChart').getContext('2d');
+const myChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: {{ task_chart.labels | safe }},
+        datasets: [{
+            label: '# of Votes',
+            data: {{ task_chart.data | safe }},
+            backgroundColor: {{ task_chart.backgroundColor | safe }},
+            borderColor: {{ task_chart.borderColor | safe }},
+            borderWidth: 1
+        }]
+    },
+    options: {
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+</script>
+{% endblock %}
