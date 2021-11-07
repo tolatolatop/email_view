@@ -17,13 +17,20 @@ function task_query() {
 
     var start_date = setting_date_start.val();
     var end_date = setting_date_end.val();
-    console.log(start_date + ' ' + end_date);
 
-    console.log('')
+    var checked_list = []
+
+    $('.form-check .form-check-input:checked').each(
+        (index, obj) => {
+            checked_list.push(obj.value)
+        }
+    )
+
+    console.log(checked_list)
     data = {
         "start_date": start_date,
         "end_date": end_date,
-        "filters": ["a"]
+        "filters": checked_list
     }
 
     json_data = JSON.stringify(data)
@@ -35,6 +42,12 @@ function task_query() {
     ).then((response) => {
         // task_table.bootstrapTable('load', response);
         console.log(response);
+        var refresh_query = {
+            url: 'http://127.0.0.1:8000/task/' + response,
+            silent: true
+        }
+        task_table.bootstrapTable('refresh', refresh_query);
+
     }
     ).fail(() => {
         console.log('failed');

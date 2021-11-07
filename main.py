@@ -2,6 +2,7 @@
 import datetime
 import logging
 import threading
+import uuid
 from typing import List
 
 from fastapi import FastAPI
@@ -12,7 +13,7 @@ from starlette.requests import Request
 from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
-from task_manage.core import get_outlook_inbox_folders, get_task_dataframe, get_task_chart
+from task_manage.core import get_outlook_inbox_folders, get_task_dataframe, get_task_chart, task_query_record
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -40,10 +41,11 @@ async def main(request: Request):
         logging.exception(e)
         mail_folders = ['获取邮件信息失败']
 
-    task_dataframe = get_task_dataframe()
+    task_dataframe = get_task_dataframe([])
+    task_dataframe_headers = list(zip(task_dataframe.column_names, task_dataframe.column_ids))
 
     return templates.TemplateResponse('index.html', {'request': request, 'mail_folders': mail_folders,
-                                                     'task_dataframe': task_dataframe})
+                                                     'table_headers': task_dataframe_headers})
 
 
 @app.get("/chart")
@@ -54,12 +56,22 @@ async def chart(request: Request):
 
 @app.post("/task_query/")
 async def create_task_query(task_query: TaskQuery):
-    logging.info(task_query)
-    return get_task_dataframe()
+    tmp_id = uuid.uuid4().hex
+    task_query_record[tmp_id] = get_task_dataframe(task_query.filters)
+    return tmp_id
+
+
+@app.get("/task/{task_id}")
+async def get_task(task_id: str):
+    if task_id in task_query_record.keys():
+        task = task_query_record[task_id].data
+        return task
+    else:
+        return []
 
 
 @app.get('/file/{file_id}', response_class=FileResponse)
-async def create_task_query(file_id: str):
+async def get_file(file_id: str):
     return file_id
 
 

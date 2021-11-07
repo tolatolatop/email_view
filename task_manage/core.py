@@ -1,6 +1,22 @@
 import logging
+from pydantic import BaseModel
+from typing import List
 
 from py_mapi.core import get_outlook, get_accounts, MailFolder
+
+task_query_record = {}
+
+
+class Task(BaseModel):
+    sender_name: str = ''
+    subject: str = ''
+    received_time: str = ''
+
+
+class TaskDataFrame(BaseModel):
+    column_names: List[str] = ['发送者', '标题', '发送时间']
+    column_ids: List[str] = ['sender_name', 'subject', 'received_time']
+    data: List[Task] = []
 
 
 def html_to_csv():
@@ -35,23 +51,24 @@ def get_task_from_outlook(folder_path):
         mail_box = MailFolder(folder_path, inbox)
         try:
             for mail in mail_box.list_mail():
-                result.append([mail.sender_address, mail.subject, mail.received_time.strftime('%Y/%m/%d')])
+                task = Task()
+                task.sender_name = mail.sender_address
+                task.subject = mail.subject
+                task.received_time = mail.received_time.strftime('%Y/%m/%d')
+                result.append(task)
         except FileNotFoundError as e:
             logging.exception(e)
     return result
 
 
-def get_task_dataframe():
+def get_task_dataframe(all_folder_path):
     all_tasks_data = []
-    all_folder_path = ['/收件箱/阿里云', '/收件箱/信用卡']
     for folder_path in all_folder_path:
         tasks_data = get_task_from_outlook(folder_path)
         all_tasks_data.extend(tasks_data)
 
-    task_dataframe = {
-        'headers': ['发送人', '标题', '接收日期'],
-        'data': all_tasks_data
-    }
+    task_dataframe = TaskDataFrame()
+    task_dataframe.data = all_tasks_data
     return task_dataframe
 
 
