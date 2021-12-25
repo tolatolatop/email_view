@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 import datetime
 import logging
+import pathlib
 import threading
 import uuid
 from typing import List
@@ -21,6 +22,7 @@ from task_manage.core import get_outlook_inbox_folders, get_task_dataframe, get_
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 app.mount('/static', StaticFiles(directory='static'), name='static')
+file_dir = pathlib.Path('./data')
 
 
 class TaskQuery(BaseModel):
@@ -72,7 +74,11 @@ async def create_task_query(task_query: TaskQuery):
     tmp_id = uuid.uuid4().hex
     from_date = parse(task_query.from_date).replace(tzinfo=tzlocal())
     to_date = parse(task_query.to_date).replace(tzinfo=tzlocal())
-    task_query_record[tmp_id] = get_task_dataframe(task_query.filters, from_date=from_date, to_date=to_date)
+    task_dataframe = get_task_dataframe(task_query.filters, from_date=from_date, to_date=to_date)
+    task_query_record[tmp_id] = task_dataframe
+    wb = task_dataframe.write_to_excel()
+    file_path = file_dir / (tmp_id + '.xlsx')
+    wb.save(str(file_path))
     return tmp_id
 
 
@@ -91,7 +97,11 @@ async def get_task(task_id: str, filter_switch=0):
 
 @app.get('/file/{file_id}', response_class=FileResponse)
 async def get_file(file_id: str):
-    return file_id
+    file_path = file_dir / (file_id + '.xlsx')
+
+    if file_path.exists():
+        return str(file_path)
+    raise HTTPException(status_code=404, detail="File not found")
 
 
 if __name__ == '__main__':

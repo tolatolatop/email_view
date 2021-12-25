@@ -2,6 +2,7 @@ import logging
 from pydantic import BaseModel
 from typing import List
 
+from openpyxl import Workbook
 from py_mapi.core import get_outlook, get_accounts, MailFolder
 
 # 此处使用uuid缓存 会概率性引发BUG
@@ -20,7 +21,12 @@ class TaskDataFrame(BaseModel):
     data: List[Task] = []
 
     def write_to_excel(self):
-        print(self.data)
+        wb = Workbook()
+        ws = wb.active
+        ws.append(self.column_names)
+        for d in self.data:
+            ws.append([d.sender_name, d.subject, d.received_time])
+        return wb
 
 
 class TasksChart(BaseModel):
