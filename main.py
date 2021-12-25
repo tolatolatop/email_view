@@ -15,7 +15,8 @@ from starlette.requests import Request
 from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
-from task_manage.core import get_outlook_inbox_folders, get_task_dataframe, get_task_chart, task_query_record
+from task_manage.core import get_outlook_inbox_folders, get_task_dataframe, get_task_chart, task_query_record, \
+    TaskDataFrame
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -33,6 +34,12 @@ items = {
     "bar": {"name": "Bar", "description": "The bartenders", "price": 62, "tax": 20.2},
     "baz": {"name": "Baz", "description": None, "price": 50.2, "tax": 10.5, "tags": []},
 }
+
+
+def title_filter(task_dataframe: TaskDataFrame):
+    td = TaskDataFrame()
+    td.data = [task for task in task_dataframe.data if 'STEAM' in task.subject.upper()]
+    return td
 
 
 @app.get("/")
@@ -70,9 +77,13 @@ async def create_task_query(task_query: TaskQuery):
 
 
 @app.get("/task/{task_id}")
-async def get_task(task_id: str):
+async def get_task(task_id: str, filter_switch=0):
     if task_id in task_query_record.keys():
-        task = task_query_record[task_id].data
+        if filter_switch == 0:
+            res = title_filter(task_query_record[task_id])
+        else:
+            res = task_query_record[task_id]
+        task = res.data
         return task
     else:
         return []

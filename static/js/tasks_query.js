@@ -40,19 +40,20 @@ function task_query() {
         url: "http://127.0.0.1:8000/task_query/",
         contentType: "application/json",
         data: json_data
-    }
-    ).then((response) => {
+    }).then((response) => {
         // task_table.bootstrapTable('load', response);
-        console.log(response);
+        console.log('task_id:' + response);
         var refresh_query = {
             url: 'http://127.0.0.1:8000/task/' + response,
-            silent: true
+            silent: true,
+            query: {
+                'filter_switch': 1
+            }
         }
         task_table.bootstrapTable('refresh', refresh_query);
         to_chart_button.attr('href', './chart/' + response);
 
-    }
-    ).fail(() => {
+    }).fail(() => {
         console.log('failed');
     })
 }
