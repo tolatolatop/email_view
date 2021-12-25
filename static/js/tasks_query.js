@@ -13,6 +13,7 @@ setting_date_end.datepicker('update', new Date());
 const task_table = $('#task_table');
 
 const to_chart_button = $('#to_chart_button');
+const export_button = $('#export_button');
 
 function task_query() {
     console.log('button click');
@@ -44,15 +45,36 @@ function task_query() {
     ).then((response) => {
         // task_table.bootstrapTable('load', response);
         console.log(response);
-        var refresh_query = {
-            url: 'http://127.0.0.1:8000/task/' + response,
-            silent: true
-        }
-        task_table.bootstrapTable('refresh', refresh_query);
+        show_table(response);
         to_chart_button.attr('href', './chart/' + response);
-
+        export_button.click(function (){
+            this.file_export = file_export
+            this.file_export('test.xlsx', './file/' + response);
+        });
     }
     ).fail(() => {
         console.log('failed');
     })
+}
+
+function show_table(task_id) {
+    var refresh_query = {
+        url: 'http://127.0.0.1:8000/task/' + task_id,
+        silent: true
+    }
+    task_table.bootstrapTable('refresh', refresh_query);
+}
+
+function file_export(filename, url) {
+
+    let link = document.createElement('a') //创建a标签
+    link.style.display = 'none'  //使其隐藏
+    link.href = url //赋予文件下载地址
+    link.setAttribute('download', filename) //设置下载属性 以及文件名
+    link.click() //强制触发a标签事件
+
+    $(this).button('loading').delay(2000).queue(function() {
+       $(this).button('reset');
+       $(this).dequeue();
+    });
 }
