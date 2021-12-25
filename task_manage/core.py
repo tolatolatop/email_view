@@ -1,6 +1,6 @@
 import logging
 from pydantic import BaseModel
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 from dateutil.parser import parse
 from openpyxl import Workbook
@@ -8,6 +8,15 @@ from py_mapi.core import get_outlook, get_accounts, MailFolder
 
 # 此处使用uuid缓存 会概率性引发BUG
 task_query_record = {}
+
+
+class WorkTime(BaseModel):
+    start = '08:00'
+    end = '08:00'
+
+
+class WorkTimeTable(BaseModel):
+    work_time: Dict[str, WorkTime] = {}
 
 
 class Task(BaseModel):
@@ -37,7 +46,7 @@ class Attendance(BaseModel):
     over: str = ''
     work_expect: str = '异常'
     over_expect: str = '异常'
-    time_range: Tuple[str, str] = ('08:00', '17:30')
+    time_range: WorkTime = None
 
 
 class AttendanceDataFrame(BaseModel):
@@ -55,7 +64,7 @@ class AttendanceDataFrame(BaseModel):
         return wb
 
     @classmethod
-    def load_from_task(cls, task_df: TaskDataFrame):
+    def load_from_task(cls, task_df: TaskDataFrame, work_time: WorkTime):
         obj = cls()
         cached = dict()
 
@@ -72,6 +81,7 @@ class AttendanceDataFrame(BaseModel):
 
             attendance.name = sender_name
             attendance.date = date
+            attendance.time_range = work_time.copy()
 
             # 取发送邮件的最大区间 作为上下班日期
             if attendance.work == '':
@@ -85,10 +95,10 @@ class AttendanceDataFrame(BaseModel):
                 attendance.over = max(attendance.over, received_time.time().isoformat())
 
         for attendance in cached.values():
-            if attendance.work < attendance.time_range[0]:
+            if attendance.work < attendance.time_range.start:
                 attendance.work_expect = '正常'
 
-            if attendance.over > attendance.time_range[1]:
+            if attendance.over > attendance.time_range.end:
                 attendance.over_expect = '正常'
 
             obj.data.append(attendance)
@@ -153,7 +163,7 @@ def get_task_from_outlook(folder_path, from_date=None, to_date=None):
                 task = Task()
                 task.sender_name = mail.sender_address
                 task.subject = mail.subject
-                task.received_time = mail.received_time.strftime('%Y/%m/%d')
+                task.received_time = mail.received_time.isoformat()
                 result.append(task)
         except FileNotFoundError as e:
             logging.exception(e)
@@ -169,6 +179,11 @@ def get_task_dataframe(all_folder_path, from_date=None, to_date=None):
     task_dataframe = TaskDataFrame()
     task_dataframe.data = all_tasks_data
     return task_dataframe
+
+
+def get_attendance_dataframe(task_df: TaskDataFrame, time_work: WorkTime):
+    df = AttendanceDataFrame()
+    return df.load_from_task(task_df, time_work)
 
 
 def get_task_chart(task_dataframe: TaskDataFrame):

@@ -13,6 +13,10 @@ setting_date_end.datepicker('update', new Date());
 const task_table = $('#task_table');
 
 const to_chart_button = $('#to_chart_button');
+const export_button = $('#export_button');
+
+const folder_check = $('.form-check .form-check-input:checked')
+const region_option = $('#region_option')
 
 function task_query() {
     console.log('button click');
@@ -22,17 +26,28 @@ function task_query() {
 
     var checked_list = []
 
-    $('.form-check .form-check-input:checked').each(
+    var region = region_option.val();
+
+    $('#region_option option').each(function(){
+        if($(this).is(':selected')) {
+            region = $(this).val();
+        }
+    });
+
+    folder_check.each(
         (index, obj) => {
             checked_list.push(obj.value)
         }
     )
 
+    console.log(region);
+
     console.log(checked_list)
     data = {
         "from_date": from_date,
         "to_date": to_date,
-        "filters": checked_list
+        "filters": checked_list,
+        'region': region
     }
 
     json_data = JSON.stringify(data)
@@ -58,7 +73,7 @@ function task_query() {
 function show_table(task_id) {
     var refresh_query = {
         url: 'http://127.0.0.1:8000/task/' + task_id,
-        silent: true
+        silent: true,
         query: {
             'filter_switch': 1
         }

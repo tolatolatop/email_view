@@ -7,7 +7,7 @@ from uuid import uuid4
 from dateutil.parser import parse
 from datetime import timedelta
 
-from task_manage.core import TaskDataFrame
+from task_manage.core import TaskDataFrame, WorkTime
 from task_manage.core import Task
 from task_manage.core import AttendanceDataFrame
 
@@ -70,10 +70,14 @@ class TestAttendance(unittest.TestCase):
         task_df.created_expect_work_data(self.work_expect)
         task_df.created_expect_over_data(self.over_expect)
 
+        self.work_time = WorkTime(start='08:00', end='17:30')
+
+        self.expect_work_time = WorkTime(start='00:00', end='00:00')
+
         self.task_dataframe = task_df
 
     def test_expect_check(self):
-        attendance_dataframe = AttendanceDataFrame.load_from_task(self.task_dataframe)
+        attendance_dataframe = AttendanceDataFrame.load_from_task(self.task_dataframe, self.work_time)
         normal_num = len(tuple(t for t in attendance_dataframe.data if t.work_expect == '正常' and t.over_expect == '正常'))
         self.assertEqual(self.normal_num, normal_num)
 
@@ -82,6 +86,10 @@ class TestAttendance(unittest.TestCase):
 
         over_expect_num = len(tuple(t for t in attendance_dataframe.data if t.over_expect == '异常'))
         self.assertEqual(self.over_expect, over_expect_num)
+
+        attendance_dataframe = AttendanceDataFrame.load_from_task(self.task_dataframe, self.expect_work_time)
+        expect_num = len(tuple(t for t in attendance_dataframe.data if t.work_expect == '正常' and t.over_expect == '正常'))
+        self.assertEqual(0, expect_num)
 
 
 if __name__ == '__main__':

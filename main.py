@@ -17,7 +17,7 @@ from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
 from task_manage.core import get_outlook_inbox_folders, get_task_dataframe, get_task_chart, task_query_record, \
-    TaskDataFrame
+    TaskDataFrame, get_attendance_dataframe, WorkTimeTable, WorkTime
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -29,12 +29,14 @@ class TaskQuery(BaseModel):
     from_date: str = None
     to_date: str = None
     filters: List[str] = []
+    region: str = '深圳地区'
 
 
-items = {
-    "foo": {"name": "Foo", "price": 50.2},
-    "bar": {"name": "Bar", "description": "The bartenders", "price": 62, "tax": 20.2},
-    "baz": {"name": "Baz", "description": None, "price": 50.2, "tax": 10.5, "tags": []},
+time_table = WorkTimeTable()
+
+time_table.work_time = {
+    '东莞地区': WorkTime(start='08:00', end='17:30'),
+    '深圳地区': WorkTime(start='09:00', end='18:30'),
 }
 
 
@@ -53,10 +55,17 @@ async def main(request: Request):
         mail_folders = ['获取邮件信息失败']
 
     task_dataframe = get_task_dataframe([])
+    task_dataframe = get_attendance_dataframe(task_dataframe)
     task_dataframe_headers = list(zip(task_dataframe.column_names, task_dataframe.column_ids))
 
-    return templates.TemplateResponse('index.html', {'request': request, 'mail_folders': mail_folders,
-                                                     'table_headers': task_dataframe_headers})
+    index_data = {
+        'request': request,
+        'mail_folders': mail_folders,
+        'table_headers': task_dataframe_headers,
+        'region_options': list(time_table.work_time.keys())
+    }
+
+    return templates.TemplateResponse('index.html', index_data)
 
 
 @app.get("/chart/{task_id}")
@@ -74,7 +83,11 @@ async def create_task_query(task_query: TaskQuery):
     tmp_id = uuid.uuid4().hex
     from_date = parse(task_query.from_date).replace(tzinfo=tzlocal())
     to_date = parse(task_query.to_date).replace(tzinfo=tzlocal())
+    region = task_query.region if task_query.region == '' else '深圳地区'
     task_dataframe = get_task_dataframe(task_query.filters, from_date=from_date, to_date=to_date)
+    if region not in time_table:
+        region = '深圳地区'
+    task_dataframe = get_attendance_dataframe(task_dataframe, time_work=time_table.work_time[region])
     task_query_record[tmp_id] = task_dataframe
     wb = task_dataframe.write_to_excel()
     file_path = file_dir / (tmp_id + '.xlsx')
