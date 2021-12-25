@@ -1,4 +1,6 @@
 # -*- coding: UTF-8 -*-
+import os
+import sys
 import datetime
 import logging
 import pathlib
@@ -20,9 +22,17 @@ from task_manage.core import get_outlook_inbox_folders, get_task_dataframe, get_
     TaskDataFrame, get_attendance_dataframe, WorkTimeTable, WorkTime
 
 app = FastAPI()
-templates = Jinja2Templates(directory="templates")
-app.mount('/static', StaticFiles(directory='static'), name='static')
+
+if getattr(sys, 'frozen', False):
+    application_path = sys._MEIPASS
+else:
+    application_path = os.path.dirname(__file__)
+
+
+templates = Jinja2Templates(directory=os.path.join(application_path, "templates"))
+app.mount('/static', StaticFiles(directory=os.path.join(application_path, 'static')), name='static')
 file_dir = pathlib.Path('./data')
+file_dir.mkdir(parents=True, exist_ok=True)
 
 
 class TaskQuery(BaseModel):
@@ -55,7 +65,7 @@ async def main(request: Request):
         mail_folders = ['获取邮件信息失败']
 
     task_dataframe = get_task_dataframe([])
-    task_dataframe = get_attendance_dataframe(task_dataframe)
+    task_dataframe = get_attendance_dataframe(task_dataframe, time_work=time_table.work_time['深圳地区'])
     task_dataframe_headers = list(zip(task_dataframe.column_names, task_dataframe.column_ids))
 
     index_data = {
