@@ -1,7 +1,8 @@
 import logging
 from pydantic import BaseModel
-from typing import List
+from typing import List, Tuple
 
+from dateutil.parser import parse
 from openpyxl import Workbook
 from py_mapi.core import get_outlook, get_accounts, MailFolder
 
@@ -27,6 +28,72 @@ class TaskDataFrame(BaseModel):
         for d in self.data:
             ws.append([d.sender_name, d.subject, d.received_time])
         return wb
+
+
+class Attendance(BaseModel):
+    name: str = ''
+    date: str = ''
+    work: str = ''
+    over: str = ''
+    work_expect: str = '异常'
+    over_expect: str = '异常'
+    time_range: Tuple[str, str] = ('08:00', '17:30')
+
+
+class AttendanceDataFrame(BaseModel):
+    column_names: List[str] = ['人员名称', '考勤日期', '上班时间', '下班时间', '上班异常', '下班异常']
+    column_ids: List[str] = ['name', 'date', 'work', 'over', 'work_expect', 'over_expect']
+    data: List[Attendance] = []
+    sub_model = Attendance
+
+    def write_to_excel(self):
+        wb = Workbook()
+        ws = wb.active
+        ws.append(self.column_names)
+        for d in self.data:
+            ws.append([d.name, d.date, d.work, d.over, d.work_expect, d.over_expect])
+        return wb
+
+    @classmethod
+    def load_from_task(cls, task_df: TaskDataFrame):
+        obj = cls()
+        cached = dict()
+
+        for task in task_df.data:
+            sender_name = task.sender_name
+            received_time = parse(task.received_time)
+            date = received_time.date().isoformat()
+            aid = (sender_name, date)
+            if aid in cached:
+                attendance = cached[aid]
+            else:
+                attendance = Attendance()
+                cached[aid] = attendance
+
+            attendance.name = sender_name
+            attendance.date = date
+
+            # 取发送邮件的最大区间 作为上下班日期
+            if attendance.work == '':
+                attendance.work = received_time.time().isoformat()
+            else:
+                attendance.work = min(attendance.work, received_time.time().isoformat())
+
+            if attendance.over == '':
+                attendance.over = received_time.time().isoformat()
+            else:
+                attendance.over = max(attendance.over, received_time.time().isoformat())
+
+        for attendance in cached.values():
+            if attendance.work < attendance.time_range[0]:
+                attendance.work_expect = '正常'
+
+            if attendance.over > attendance.time_range[1]:
+                attendance.over_expect = '正常'
+
+            obj.data.append(attendance)
+
+        return obj
 
 
 class TasksChart(BaseModel):
